@@ -24,7 +24,7 @@ const rise = keyframes`
 `;
 
 export const GlobalStyle = createGlobalStyle`
-  @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap");
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap");
 
   :root {
     color-scheme: dark;
@@ -127,8 +127,8 @@ const CircleButton = styled.button`
 `;
 
 export const BrandMark = styled.div`
-  width: 110px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   display: inline-flex;
   align-items: center;
   color: #fff;
@@ -162,6 +162,12 @@ export const HistoryItem = styled.button<{ $active: boolean }>`
   padding: 16px 18px;
   border-radius: 18px;
   text-align: left;
+  font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 16px;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums tabular-nums;
   color: rgba(255, 255, 255, 0.84);
   background: ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.05)")};
   border: 1px solid ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.1)" : "transparent")};
@@ -174,11 +180,19 @@ export const PrimaryPill = styled.button`
   min-height: 64px;
   padding: 0 28px;
   border-radius: 999px;
+  font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 140%;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums tabular-nums;
   color: #fff;
   background: linear-gradient(135deg, rgba(216, 194, 255, 0.38), rgba(149, 92, 238, 0.42));
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 18px 38px rgba(108, 58, 179, 0.25);
 `;
+
+export const HeroSubmitButton = styled(PrimaryPill)``;
 
 export const ContentPanel = styled.main`
   position: relative;
@@ -234,13 +248,24 @@ export const Hero = styled.section`
 export const HeroCopy = styled.div`
   h1 {
     margin: 8px 0 12px;
-    font-size: clamp(2.2rem, 4vw, 3.7rem);
-    line-height: 1;
+    font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+    font-weight: 600;
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: -0.25px;
+    text-align: center;
+    font-variant-numeric: lining-nums tabular-nums;
   }
 
   p {
     margin: 0;
-    font-size: 1.1rem;
+    font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+    font-weight: 400;
+    font-size: 18px;
+    line-height: 24px;
+    letter-spacing: 0;
+    text-align: center;
+    font-variant-numeric: lining-nums tabular-nums;
     color: rgba(255, 255, 255, 0.66);
   }
 `;
@@ -334,23 +359,35 @@ export const SummaryBodyWrap = styled.div`
 
 export const SummaryTitle = styled.h1`
   margin: 0 0 24px;
-  font-size: clamp(2rem, 3vw, 3rem);
-  line-height: 1.05;
+  font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 32px;
+  letter-spacing: -0.25px;
+  font-variant-numeric: lining-nums tabular-nums;
 `;
 
 export const SummaryParagraph = styled.p`
   margin: 0 0 28px;
+  font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 1.05rem;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 160%;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums tabular-nums;
 `;
 
 export const SummaryList = styled.ul`
   margin: 0 0 28px;
   padding-left: 20px;
+  font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 1.05rem;
-  line-height: 1.8;
+  font-size: 14px;
+  line-height: 160%;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums tabular-nums;
 `;
 
 export const SummaryToolbar = styled.div`
@@ -371,6 +408,12 @@ export const ToolbarUrl = styled.div`
   align-items: center;
   padding: 0 22px;
   border-radius: 999px;
+  font-family: "Inter Variable", "Inter", "Segoe UI", sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 140%;
+  letter-spacing: 0;
+  font-variant-numeric: lining-nums tabular-nums;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(164, 99, 245, 0.14));
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.86);
