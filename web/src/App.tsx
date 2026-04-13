@@ -1,8 +1,6 @@
 import { startTransition, useEffect, useRef, useState, type FormEvent } from "react";
 import styled, { createGlobalStyle, keyframes } from "styled-components";
 
-const STORAGE_KEY = "web-summary-history";
-
 type SummaryItem = {
   id: string;
   url: string;
@@ -10,24 +8,10 @@ type SummaryItem = {
   createdAt: string;
 };
 
-function loadHistory(): SummaryItem[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? (parsed as SummaryItem[]) : [];
-  } catch {
-    return [];
-  }
-}
-
 function normalizeUrl(input: string): string {
   const raw = input.trim();
   const withProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(raw) ? raw : `https://${raw}`;
   return new URL(withProtocol).toString();
-}
-
-function createId(): string {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
 }
 
 function splitSummary(summary: string): string[] {
@@ -42,10 +26,10 @@ async function getErrorMessage(response: Response): Promise<string> {
 
   if (contentType.includes("application/json")) {
     const payload = (await response.json()) as { error?: string };
-    return payload.error ?? "The summary request failed.";
+    return payload.error ?? "The request failed.";
   }
 
-  return (await response.text()) || "The summary request failed.";
+  return (await response.text()) || "The request failed.";
 }
 
 function SummaryBody({ text }: { text: string }) {
@@ -81,24 +65,54 @@ function SummaryBody({ text }: { text: string }) {
 }
 
 function App() {
-  const initialHistoryRef = useRef<SummaryItem[]>(loadHistory());
-  const [history, setHistory] = useState<SummaryItem[]>(initialHistoryRef.current);
-  const [activeId, setActiveId] = useState<string | null>(initialHistoryRef.current[0]?.id ?? null);
+  const [history, setHistory] = useState<SummaryItem[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [draftUrl, setDraftUrl] = useState("");
   const [draftSummary, setDraftSummary] = useState("");
   const [error, setError] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-  }, [history]);
+    void (async () => {
+      try {
+        await refreshHistory();
+      } catch (loadError) {
+        setError(loadError instanceof Error ? loadError.message : "Failed to load saved summaries.");
+        setIsLoadingHistory(false);
+      }
+    })();
+  }, []);
 
   const activeItem = history.find((item) => item.id === activeId) ?? null;
   const showingDraft = isStreaming || (!activeItem && draftSummary.length > 0);
   const contentUrl = showingDraft ? draftUrl : activeItem?.url ?? "";
   const contentText = showingDraft ? draftSummary : activeItem?.summary ?? "";
+
+  async function refreshHistory(preferredId?: string | null): Promise<SummaryItem[]> {
+    const response = await fetch("/api/summaries");
+
+    if (!response.ok) {
+      throw new Error(await getErrorMessage(response));
+    }
+
+    const items = (await response.json()) as SummaryItem[];
+    setHistory(items);
+    setActiveId((current) => {
+      const nextChoice = preferredId ?? current;
+
+      if (nextChoice && items.some((item) => item.id === nextChoice)) {
+        return nextChoice;
+      }
+
+      return items[0]?.id ?? null;
+    });
+    setIsLoadingHistory(false);
+
+    return items;
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -158,15 +172,7 @@ function App() {
         throw new Error("The model returned an empty summary.");
       }
 
-      const nextItem: SummaryItem = {
-        id: createId(),
-        url: normalizedUrl,
-        summary: fullText.trim(),
-        createdAt: new Date().toISOString()
-      };
-
-      setHistory((current) => [nextItem, ...current]);
-      setActiveId(nextItem.id);
+      await refreshHistory();
       setUrlInput("");
     } catch (requestError) {
       if (requestError instanceof Error && requestError.name === "AbortError") {
@@ -186,18 +192,6 @@ function App() {
     setDraftUrl("");
     setDraftSummary("");
     setError("");
-  }
-
-  function handleDelete(): void {
-    if (!activeItem) {
-      return;
-    }
-
-    setHistory((current) => {
-      const remaining = current.filter((item) => item.id !== activeItem.id);
-      setActiveId(remaining[0]?.id ?? null);
-      return remaining;
-    });
   }
 
   async function handleCopy(): Promise<void> {
@@ -241,7 +235,9 @@ function App() {
           </BrandRow>
 
           <HistoryList>
-            {history.length === 0 ? (
+            {isLoadingHistory ? (
+              <EmptyState>Loading saved summaries...</EmptyState>
+            ) : history.length === 0 ? (
               <EmptyState>No summaries yet</EmptyState>
             ) : (
               history.map((item) => (
@@ -320,9 +316,6 @@ function App() {
                     <IconButton type="button" onClick={handleDownload} aria-label="Download summary">
                       <DownloadIcon />
                     </IconButton>
-                    <DeleteButton type="button" onClick={handleDelete} aria-label="Delete summary">
-                      <TrashIcon />
-                    </DeleteButton>
                   </>
                 )}
               </SummaryToolbar>
@@ -373,14 +366,6 @@ function DownloadIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 4v10m0 0 4-4m-4 4-4-4M5 18.5h14" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4.5 7.5h15M9.5 11.2v5.4m5-5.4v5.4M8 7.5l.8-2h6.4l.8 2m-9 0 1 10.2a2 2 0 0 0 2 1.8h4.9a2 2 0 0 0 2-1.8l1-10.2" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   );
 }
@@ -788,10 +773,6 @@ const IconButton = styled(CircleButton)`
 const StopButton = styled(PrimaryPill)`
   min-height: 56px;
   padding: 0 22px;
-`;
-
-const DeleteButton = styled(IconButton)`
-  background: linear-gradient(180deg, rgba(255, 112, 153, 0.5), rgba(210, 65, 115, 0.55));
 `;
 
 const InlineErrorMessage = styled(ErrorMessage)`

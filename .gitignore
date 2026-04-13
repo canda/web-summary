@@ -4,3 +4,4 @@ dist
 server/node_modules
 web/node_modules
 web/dist
+server/data/summaries.json

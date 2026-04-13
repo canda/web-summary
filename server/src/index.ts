@@ -1,10 +1,15 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import http from "node:http";
+import path from "node:path";
 
 const PORT = Number.parseInt(process.env.PORT ?? "3001", 10);
 const AI_MODEL_URL = process.env.AI_MODEL_URL;
 const AI_MODEL_NAME = process.env.AI_MODEL_NAME;
 const MAX_BODY_SIZE = 1024 * 1024;
 const MAX_CONTENT_CHARS = 18000;
+const STORAGE_DIR = path.join(process.cwd(), "data");
+const STORAGE_FILE = path.join(STORAGE_DIR, "summaries.json");
 
 type JsonRecord = Record<string, unknown>;
 
@@ -15,6 +20,13 @@ type WebsiteContent = {
   text: string;
 };
 
+type SummaryRecord = {
+  id: string;
+  url: string;
+  summary: string;
+  createdAt: string;
+};
+
 type OpenAIStreamChunk = {
   choices?: Array<{
     delta?: {
@@ -23,13 +35,15 @@ type OpenAIStreamChunk = {
   }>;
 };
 
+let storageQueue: Promise<void> = Promise.resolve();
+
 function setCorsHeaders(res: http.ServerResponse): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function sendJson(res: http.ServerResponse, statusCode: number, payload: JsonRecord): void {
+function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
   res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
 }
@@ -53,6 +67,10 @@ function normalizeUrl(input: unknown): string {
   }
 
   return parsed.toString();
+}
+
+function getRequestUrl(req: http.IncomingMessage): URL {
+  return new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 }
 
 async function readJsonBody(req: http.IncomingMessage): Promise<JsonRecord> {
@@ -139,6 +157,58 @@ function extractWebsiteContent(html: string, requestedUrl: string): WebsiteConte
   };
 }
 
+async function ensureStorageFile(): Promise<void> {
+  await mkdir(STORAGE_DIR, { recursive: true });
+
+  try {
+    await readFile(STORAGE_FILE, "utf8");
+  } catch {
+    await writeFile(STORAGE_FILE, "[]\n", "utf8");
+  }
+}
+
+async function readStoredSummaries(): Promise<SummaryRecord[]> {
+  await ensureStorageFile();
+  const raw = await readFile(STORAGE_FILE, "utf8");
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as SummaryRecord[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeStoredSummaries(summaries: SummaryRecord[]): Promise<void> {
+  await ensureStorageFile();
+  await writeFile(STORAGE_FILE, `${JSON.stringify(summaries, null, 2)}\n`, "utf8");
+}
+
+function enqueueStorageTask<T>(task: () => Promise<T>): Promise<T> {
+  const nextTask = storageQueue.then(task, task);
+  storageQueue = nextTask.then(
+    () => undefined,
+    () => undefined
+  );
+  return nextTask;
+}
+
+async function saveSummary(url: string, summary: string): Promise<SummaryRecord> {
+  return enqueueStorageTask(async () => {
+    const summaries = await readStoredSummaries();
+    const nextSummary: SummaryRecord = {
+      id: randomUUID(),
+      url,
+      summary,
+      createdAt: new Date().toISOString()
+    };
+
+    summaries.unshift(nextSummary);
+    await writeStoredSummaries(summaries);
+    return nextSummary;
+  });
+}
+
 async function fetchWebsite(url: string): Promise<{ finalUrl: string; html: string }> {
   const response = await fetch(url, {
     redirect: "follow",
@@ -178,7 +248,7 @@ function buildMessages(content: WebsiteContent): Array<{ role: "system" | "user"
   ];
 }
 
-async function pipeModelStream(modelResponse: Response, res: http.ServerResponse): Promise<void> {
+async function pipeModelStream(modelResponse: Response, res: http.ServerResponse): Promise<string> {
   const reader = modelResponse.body?.getReader();
 
   if (!reader) {
@@ -187,6 +257,7 @@ async function pipeModelStream(modelResponse: Response, res: http.ServerResponse
 
   const decoder = new TextDecoder();
   let buffer = "";
+  let fullText = "";
 
   const handleEvent = (eventText: string): boolean => {
     for (const rawLine of eventText.split(/\r?\n/)) {
@@ -210,6 +281,7 @@ async function pipeModelStream(modelResponse: Response, res: http.ServerResponse
       const token = parsed.choices?.[0]?.delta?.content;
 
       if (typeof token === "string" && token.length > 0) {
+        fullText += token;
         res.write(token);
       }
     }
@@ -229,7 +301,7 @@ async function pipeModelStream(modelResponse: Response, res: http.ServerResponse
       buffer = buffer.slice(separatorIndex + 2);
 
       if (handleEvent(eventText)) {
-        return;
+        return fullText;
       }
 
       separatorIndex = buffer.indexOf("\n\n");
@@ -242,6 +314,17 @@ async function pipeModelStream(modelResponse: Response, res: http.ServerResponse
 
   if (buffer.trim()) {
     handleEvent(buffer);
+  }
+
+  return fullText;
+}
+
+async function handleListSummaries(res: http.ServerResponse): Promise<void> {
+  try {
+    const summaries = await readStoredSummaries();
+    sendJson(res, 200, summaries);
+  } catch (error) {
+    sendJson(res, 500, { error: error instanceof Error ? error.message : "Failed to read summaries." });
   }
 }
 
@@ -292,7 +375,12 @@ async function handleSummarize(req: http.IncomingMessage, res: http.ServerRespon
       "X-Source-Url": extracted.url
     });
 
-    await pipeModelStream(upstream, res);
+    const summary = (await pipeModelStream(upstream, res)).trim();
+
+    if (summary) {
+      await saveSummary(extracted.url, summary);
+    }
+
     res.end();
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to summarize the website.";
@@ -316,7 +404,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "GET" && req.url === "/health") {
+  const requestUrl = getRequestUrl(req);
+
+  if (req.method === "GET" && requestUrl.pathname === "/health") {
     sendJson(res, 200, {
       ok: true,
       model: AI_MODEL_NAME ?? null
@@ -324,7 +414,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "POST" && req.url === "/api/summarize") {
+  if (req.method === "GET" && requestUrl.pathname === "/api/summaries") {
+    await handleListSummaries(res);
+    return;
+  }
+
+  if (req.method === "POST" && requestUrl.pathname === "/api/summarize") {
     await handleSummarize(req, res);
     return;
   }
@@ -334,4 +429,5 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Streaming summary API listening on http://localhost:${PORT}`);
+  console.log(`Summary storage file: ${STORAGE_FILE}`);
 });

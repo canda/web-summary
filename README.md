@@ -29,6 +29,8 @@ The frontend sends `POST /api/summarize` requests to the Node service, which:
 3. calls the configured model with `stream: true`
 4. streams the plain-text summary back to the browser
 
+Saved summaries are persisted in `server/data/summaries.json`, and the frontend history list is loaded from that server-side file.
+
 ## Services
 
 - `web`: Vite React app on port `5173`
