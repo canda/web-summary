@@ -68,8 +68,16 @@ export const AppShell = styled.div`
   display: grid;
   grid-template-columns: 320px 1fr;
   background:
-    radial-gradient(circle at 60% 50%, rgba(173, 94, 255, 0.22), transparent 23%),
-    radial-gradient(circle at 18% 100%, rgba(159, 85, 255, 0.16), transparent 28%),
+    radial-gradient(
+      circle at 60% 50%,
+      rgba(173, 94, 255, 0.22),
+      transparent 23%
+    ),
+    radial-gradient(
+      circle at 18% 100%,
+      rgba(159, 85, 255, 0.16),
+      transparent 28%
+    ),
     linear-gradient(180deg, rgba(5, 5, 7, 0.98), rgba(10, 7, 16, 0.98));
 
   @media (max-width: 960px) {
@@ -85,7 +93,11 @@ export const Sidebar = styled.aside`
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   background:
     linear-gradient(180deg, rgba(4, 4, 6, 0.96), rgba(8, 6, 13, 0.92)),
-    radial-gradient(circle at 50% 100%, rgba(165, 93, 255, 0.14), transparent 38%);
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(165, 93, 255, 0.14),
+      transparent 38%
+    );
   backdrop-filter: blur(18px);
 
   @media (max-width: 960px) {
@@ -112,7 +124,10 @@ const CircleButton = styled.button`
   color: rgba(255, 255, 255, 0.86);
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
 
   &:hover {
     transform: translateY(-1px);
@@ -169,8 +184,10 @@ export const HistoryItem = styled.button<{ $active: boolean }>`
   letter-spacing: 0;
   font-variant-numeric: lining-nums tabular-nums;
   color: rgba(255, 255, 255, 0.84);
-  background: ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.05)")};
-  border: 1px solid ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.1)" : "transparent")};
+  background: ${({ $active }) =>
+    $active ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.05)"};
+  border: 1px solid
+    ${({ $active }) => ($active ? "rgba(255, 255, 255, 0.1)" : "transparent")};
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -187,7 +204,11 @@ export const PrimaryPill = styled.button`
   letter-spacing: 0;
   font-variant-numeric: lining-nums tabular-nums;
   color: #fff;
-  background: linear-gradient(135deg, rgba(216, 194, 255, 0.38), rgba(149, 92, 238, 0.42));
+  background: linear-gradient(
+    135deg,
+    rgba(216, 194, 255, 0.38),
+    rgba(149, 92, 238, 0.42)
+  );
   border: 1px solid rgba(255, 255, 255, 0.16);
   box-shadow: 0 18px 38px rgba(108, 58, 179, 0.25);
 `;
@@ -296,9 +317,15 @@ export const UrlField = styled.label`
   padding: 0 20px;
   min-height: 64px;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(171, 109, 255, 0.12));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12),
+    rgba(171, 109, 255, 0.12)
+  );
   border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 50px rgba(112, 61, 188, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 20px 50px rgba(112, 61, 188, 0.18);
 
   svg {
     width: 18px;
@@ -414,7 +441,11 @@ export const ToolbarUrl = styled.div`
   line-height: 140%;
   letter-spacing: 0;
   font-variant-numeric: lining-nums tabular-nums;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(164, 99, 245, 0.14));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.1),
+    rgba(164, 99, 245, 0.14)
+  );
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.86);
   overflow: hidden;

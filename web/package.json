@@ -11,8 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format": "prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --write .",
+    "format:check": "prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --check ."
   },
   "dependencies": {
     "react": "^19.0.0",
@@ -20,10 +20,10 @@
     "styled-components": "^6.1.0"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^5.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "prettier": "^3.5.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "prettier": "^3.8.2",
     "typescript": "^5.9.0",
     "vite": "^7.0.0"
   }

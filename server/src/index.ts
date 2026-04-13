@@ -43,8 +43,14 @@ function setCorsHeaders(res: http.ServerResponse): void {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
-function sendJson(res: http.ServerResponse, statusCode: number, payload: unknown): void {
-  res.writeHead(statusCode, { "Content-Type": "application/json; charset=utf-8" });
+function sendJson(
+  res: http.ServerResponse,
+  statusCode: number,
+  payload: unknown
+): void {
+  res.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8"
+  });
   res.end(JSON.stringify(payload));
 }
 
@@ -59,7 +65,9 @@ function isHttpUrl(value: string): boolean {
 
 function normalizeUrl(input: unknown): string {
   const raw = String(input ?? "").trim();
-  const withProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(raw) ? raw : `https://${raw}`;
+  const withProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(raw)
+    ? raw
+    : `https://${raw}`;
   const parsed = new URL(withProtocol);
 
   if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -98,7 +106,7 @@ function decodeHtmlEntities(text: string): string {
     gt: ">",
     lt: "<",
     nbsp: " ",
-    quot: "\""
+    quot: '"'
   };
 
   return text.replace(/&(#x?[0-9a-fA-F]+|\w+);/g, (_, entity: string) => {
@@ -116,10 +124,15 @@ function decodeHtmlEntities(text: string): string {
 
 function matchFirst(pattern: RegExp, text: string): string {
   const match = text.match(pattern);
-  return match?.[1] ? decodeHtmlEntities(match[1].replace(/\s+/g, " ").trim()) : "";
+  return match?.[1]
+    ? decodeHtmlEntities(match[1].replace(/\s+/g, " ").trim())
+    : "";
 }
 
-function extractWebsiteContent(html: string, requestedUrl: string): WebsiteContent {
+function extractWebsiteContent(
+  html: string,
+  requestedUrl: string
+): WebsiteContent {
   const withoutNoise = html
     .replace(/<!--[\s\S]*?-->/g, " ")
     .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
@@ -130,18 +143,30 @@ function extractWebsiteContent(html: string, requestedUrl: string): WebsiteConte
 
   const title =
     matchFirst(/<title[^>]*>([\s\S]*?)<\/title>/i, withoutNoise) ||
-    matchFirst(/<meta[^>]+property=["']og:title["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i, withoutNoise);
+    matchFirst(
+      /<meta[^>]+property=["']og:title["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i,
+      withoutNoise
+    );
 
   const description =
-    matchFirst(/<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i, withoutNoise) ||
-    matchFirst(/<meta[^>]+property=["']og:description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i, withoutNoise);
+    matchFirst(
+      /<meta[^>]+name=["']description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i,
+      withoutNoise
+    ) ||
+    matchFirst(
+      /<meta[^>]+property=["']og:description["'][^>]+content=["']([\s\S]*?)["'][^>]*>/i,
+      withoutNoise
+    );
 
   const bodyMatch = withoutNoise.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
   const bodyHtml = bodyMatch?.[1] ?? withoutNoise;
   const collapsed = decodeHtmlEntities(
     bodyHtml
       .replace(/<(br|hr)\s*\/?>/gi, "\n")
-      .replace(/<\/(address|article|aside|blockquote|div|figcaption|figure|footer|form|h[1-6]|header|li|main|nav|ol|p|pre|section|table|tr|ul)>/gi, "\n")
+      .replace(
+        /<\/(address|article|aside|blockquote|div|figcaption|figure|footer|form|h[1-6]|header|li|main|nav|ol|p|pre|section|table|tr|ul)>/gi,
+        "\n"
+      )
       .replace(/<[^>]+>/g, " ")
   )
     .split("\n")
@@ -181,7 +206,11 @@ async function readStoredSummaries(): Promise<SummaryRecord[]> {
 
 async function writeStoredSummaries(summaries: SummaryRecord[]): Promise<void> {
   await ensureStorageFile();
-  await writeFile(STORAGE_FILE, `${JSON.stringify(summaries, null, 2)}\n`, "utf8");
+  await writeFile(
+    STORAGE_FILE,
+    `${JSON.stringify(summaries, null, 2)}\n`,
+    "utf8"
+  );
 }
 
 function enqueueStorageTask<T>(task: () => Promise<T>): Promise<T> {
@@ -193,7 +222,10 @@ function enqueueStorageTask<T>(task: () => Promise<T>): Promise<T> {
   return nextTask;
 }
 
-async function saveSummary(url: string, summary: string): Promise<SummaryRecord> {
+async function saveSummary(
+  url: string,
+  summary: string
+): Promise<SummaryRecord> {
   return enqueueStorageTask(async () => {
     const summaries = await readStoredSummaries();
     const nextSummary: SummaryRecord = {
@@ -209,7 +241,9 @@ async function saveSummary(url: string, summary: string): Promise<SummaryRecord>
   });
 }
 
-async function fetchWebsite(url: string): Promise<{ finalUrl: string; html: string }> {
+async function fetchWebsite(
+  url: string
+): Promise<{ finalUrl: string; html: string }> {
   const response = await fetch(url, {
     redirect: "follow",
     headers: {
@@ -218,7 +252,9 @@ async function fetchWebsite(url: string): Promise<{ finalUrl: string; html: stri
   });
 
   if (!response.ok) {
-    throw new Error(`Website request failed with ${response.status} ${response.statusText}.`);
+    throw new Error(
+      `Website request failed with ${response.status} ${response.statusText}.`
+    );
   }
 
   return {
@@ -227,7 +263,9 @@ async function fetchWebsite(url: string): Promise<{ finalUrl: string; html: stri
   };
 }
 
-function buildMessages(content: WebsiteContent): Array<{ role: "system" | "user"; content: string }> {
+function buildMessages(
+  content: WebsiteContent
+): Array<{ role: "system" | "user"; content: string }> {
   return [
     {
       role: "system",
@@ -248,7 +286,10 @@ function buildMessages(content: WebsiteContent): Array<{ role: "system" | "user"
   ];
 }
 
-async function pipeModelStream(modelResponse: Response, res: http.ServerResponse): Promise<string> {
+async function pipeModelStream(
+  modelResponse: Response,
+  res: http.ServerResponse
+): Promise<string> {
   const reader = modelResponse.body?.getReader();
 
   if (!reader) {
@@ -324,11 +365,17 @@ async function handleListSummaries(res: http.ServerResponse): Promise<void> {
     const summaries = await readStoredSummaries();
     sendJson(res, 200, summaries);
   } catch (error) {
-    sendJson(res, 500, { error: error instanceof Error ? error.message : "Failed to read summaries." });
+    sendJson(res, 500, {
+      error:
+        error instanceof Error ? error.message : "Failed to read summaries."
+    });
   }
 }
 
-async function handleSummarize(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+async function handleSummarize(
+  req: http.IncomingMessage,
+  res: http.ServerResponse
+): Promise<void> {
   if (!AI_MODEL_URL || !AI_MODEL_NAME) {
     sendJson(res, 500, { error: "The model endpoint is not configured." });
     return;
@@ -345,27 +392,34 @@ async function handleSummarize(req: http.IncomingMessage, res: http.ServerRespon
       return;
     }
   } catch (error) {
-    sendJson(res, 400, { error: error instanceof Error ? error.message : "Invalid request body." });
+    sendJson(res, 400, {
+      error: error instanceof Error ? error.message : "Invalid request body."
+    });
     return;
   }
 
   try {
     const website = await fetchWebsite(requestUrl);
     const extracted = extractWebsiteContent(website.html, website.finalUrl);
-    const upstream = await fetch(`${AI_MODEL_URL.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: AI_MODEL_NAME,
-        stream: true,
-        messages: buildMessages(extracted)
-      })
-    });
+    const upstream = await fetch(
+      `${AI_MODEL_URL.replace(/\/$/, "")}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: AI_MODEL_NAME,
+          stream: true,
+          messages: buildMessages(extracted)
+        })
+      }
+    );
 
     if (!upstream.ok) {
-      throw new Error(`Model request failed with ${upstream.status}: ${await upstream.text()}`);
+      throw new Error(
+        `Model request failed with ${upstream.status}: ${await upstream.text()}`
+      );
     }
 
     res.writeHead(200, {
@@ -383,7 +437,10 @@ async function handleSummarize(req: http.IncomingMessage, res: http.ServerRespon
 
     res.end();
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to summarize the website.";
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Failed to summarize the website.";
 
     if (res.headersSent) {
       res.write(`\n\n[Stream interrupted: ${message}]`);

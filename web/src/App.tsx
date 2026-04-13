@@ -3,16 +3,16 @@ import {
   useEffect,
   useRef,
   useState,
-  type FormEvent,
-} from 'react';
-import * as S from './App.styled';
+  type FormEvent
+} from "react";
+import * as S from "./App.styled";
 import {
   CopyIcon,
   DownloadIcon,
   LinkIcon,
   PlusIcon,
-  ProfoundLogo,
-} from './icons';
+  ProfoundLogo
+} from "./icons";
 
 type SummaryItem = {
   id: string;
@@ -37,14 +37,14 @@ function splitSummary(summary: string): string[] {
 }
 
 async function getErrorMessage(response: Response): Promise<string> {
-  const contentType = response.headers.get('content-type') ?? '';
+  const contentType = response.headers.get("content-type") ?? "";
 
-  if (contentType.includes('application/json')) {
+  if (contentType.includes("application/json")) {
     const payload = (await response.json()) as { error?: string };
-    return payload.error ?? 'The request failed.';
+    return payload.error ?? "The request failed.";
   }
 
-  return (await response.text()) || 'The request failed.';
+  return (await response.text()) || "The request failed.";
 }
 
 function SummaryBody({ text }: { text: string }) {
@@ -54,7 +54,7 @@ function SummaryBody({ text }: { text: string }) {
     <S.SummaryBodyWrap>
       {blocks.map((block, index) => {
         const lines = block
-          .split('\n')
+          .split("\n")
           .map((line) => line.trim())
           .filter(Boolean);
         const isBulletBlock =
@@ -72,7 +72,7 @@ function SummaryBody({ text }: { text: string }) {
           return (
             <S.SummaryList key={`${block}-${index}`}>
               {lines.map((line) => (
-                <li key={line}>{line.replace(/^[-*•]\s*/, '')}</li>
+                <li key={line}>{line.replace(/^[-*•]\s*/, "")}</li>
               ))}
             </S.SummaryList>
           );
@@ -91,10 +91,10 @@ function SummaryBody({ text }: { text: string }) {
 function App() {
   const [history, setHistory] = useState<SummaryItem[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [urlInput, setUrlInput] = useState('');
-  const [draftUrl, setDraftUrl] = useState('');
-  const [draftSummary, setDraftSummary] = useState('');
-  const [error, setError] = useState('');
+  const [urlInput, setUrlInput] = useState("");
+  const [draftUrl, setDraftUrl] = useState("");
+  const [draftSummary, setDraftSummary] = useState("");
+  const [error, setError] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
@@ -107,7 +107,7 @@ function App() {
         setError(
           loadError instanceof Error
             ? loadError.message
-            : 'Failed to load saved summaries.',
+            : "Failed to load saved summaries."
         );
         setIsLoadingHistory(false);
       }
@@ -116,13 +116,13 @@ function App() {
 
   const activeItem = history.find((item) => item.id === activeId) ?? null;
   const showingDraft = isStreaming || (!activeItem && draftSummary.length > 0);
-  const contentUrl = showingDraft ? draftUrl : (activeItem?.url ?? '');
-  const contentText = showingDraft ? draftSummary : (activeItem?.summary ?? '');
+  const contentUrl = showingDraft ? draftUrl : (activeItem?.url ?? "");
+  const contentText = showingDraft ? draftSummary : (activeItem?.summary ?? "");
 
   async function refreshHistory(
-    preferredId?: string | null,
+    preferredId?: string | null
   ): Promise<SummaryItem[]> {
-    const response = await fetch('/api/summaries');
+    const response = await fetch("/api/summaries");
 
     if (!response.ok) {
       throw new Error(await getErrorMessage(response));
@@ -146,14 +146,14 @@ function App() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError('');
+    setError("");
 
-    let normalizedUrl = '';
+    let normalizedUrl = "";
 
     try {
       normalizedUrl = normalizeUrl(urlInput);
     } catch {
-      setError('Please enter a valid URL.');
+      setError("Please enter a valid URL.");
       return;
     }
 
@@ -162,17 +162,17 @@ function App() {
 
     setIsStreaming(true);
     setDraftUrl(normalizedUrl);
-    setDraftSummary('');
+    setDraftSummary("");
     setActiveId(null);
 
     try {
-      const response = await fetch('/api/summarize', {
-        method: 'POST',
+      const response = await fetch("/api/summarize", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ url: normalizedUrl }),
-        signal: controller.signal,
+        signal: controller.signal
       });
 
       if (!response.ok || !response.body) {
@@ -181,7 +181,7 @@ function App() {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let fullText = '';
+      let fullText = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -199,19 +199,19 @@ function App() {
       }
 
       if (!fullText.trim()) {
-        throw new Error('The model returned an empty summary.');
+        throw new Error("The model returned an empty summary.");
       }
 
       await refreshHistory();
-      setUrlInput('');
+      setUrlInput("");
     } catch (requestError) {
-      if (requestError instanceof Error && requestError.name === 'AbortError') {
-        setError('Streaming stopped.');
+      if (requestError instanceof Error && requestError.name === "AbortError") {
+        setError("Streaming stopped.");
       } else {
         setError(
           requestError instanceof Error
             ? requestError.message
-            : 'Something went wrong.',
+            : "Something went wrong."
         );
       }
     } finally {
@@ -223,9 +223,9 @@ function App() {
   function handleNewSummary(): void {
     abortRef.current?.abort();
     setActiveId(null);
-    setDraftUrl('');
-    setDraftSummary('');
-    setError('');
+    setDraftUrl("");
+    setDraftSummary("");
+    setError("");
   }
 
   async function handleCopy(): Promise<void> {
@@ -241,11 +241,11 @@ function App() {
       return;
     }
 
-    const blob = new Blob([contentText], { type: 'text/plain;charset=utf-8' });
+    const blob = new Blob([contentText], { type: "text/plain;charset=utf-8" });
     const href = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
+    const anchor = document.createElement("a");
     anchor.href = href;
-    anchor.download = 'summary.txt';
+    anchor.download = "summary.txt";
     anchor.click();
     URL.revokeObjectURL(href);
   }
@@ -285,8 +285,8 @@ function App() {
                   $active={item.id === activeId}
                   onClick={() => {
                     setActiveId(item.id);
-                    setDraftSummary('');
-                    setDraftUrl('');
+                    setDraftSummary("");
+                    setDraftUrl("");
                   }}
                 >
                   <span>{item.url}</span>
@@ -335,12 +335,12 @@ function App() {
               <S.SummaryScroll>
                 <S.SummaryHeader>
                   <S.Eyebrow>
-                    {isStreaming ? 'Streaming summary' : 'Saved summary'}
+                    {isStreaming ? "Streaming summary" : "Saved summary"}
                   </S.Eyebrow>
                   <h2>{contentUrl}</h2>
                 </S.SummaryHeader>
 
-                <SummaryBody text={contentText || 'Preparing summary...'} />
+                <SummaryBody text={contentText || "Preparing summary..."} />
               </S.SummaryScroll>
 
               <S.SummaryToolbar>
