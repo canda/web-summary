@@ -16,6 +16,15 @@ A three-part local project for summarizing any webpage:
 
 ## Run it
 
+pre-requisites:
+
+- update docker desktop to the latest version
+- Go to docker settings and enable:
+  - docker model runner
+  - TCP support on port 12434
+
+then:
+
 ```bash
 docker compose up
 ```
